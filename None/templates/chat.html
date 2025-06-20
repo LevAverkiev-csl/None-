@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Чат с {{ recipient.username }} - РусПост</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #050505;
+            --container-bg: #ffffff;
+            --border-color: #ccd0d5;
+            --button-bg: #1877f2;
+            --button-hover-bg: #166fe5;
+            --message-bg: #e4e6eb;
+            --own-message-bg: #0084ff;
+            --online-color: #31a24c;
+        }
+
+        body.dark-mode {
+            --bg-color: #18191a;
+            --text-color: #e4e6eb;
+            --container-bg: #242526;
+            --border-color: #3a3b3c;
+            --message-bg: #3a3b3c;
+            --own-message-bg: #2374e1;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .chat-container {
+            max-width: 900px;
+            margin: 60px auto 20px;
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            max-width: 900px;
+            background: var(--container-bg);
+            z-index: 1000;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .user-info {
+            flex-grow: 1;
+        }
+
+        .user-name {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .user-status {
+            margin: 2px 0 0;
+            font-size: 13px;
+            color: var(--online-color);
+        }
+
+        .messages-container {
+            padding: 80px 15px 70px;
+            overflow-y: auto;
+            height: calc(100vh - 130px);
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 15px;
+            max-width: 65%;
+        }
+
+        .message.own {
+            margin-left: auto;
+            flex-direction: row-reverse;
+        }
+
+        .message-content {
+            background: var(--message-bg);
+            padding: 8px 12px;
+            border-radius: 18px;
+            line-height: 1.4;
+            position: relative;
+            word-break: break-word;
+        }
+
+        .message.own .message-content {
+            background: var(--own-message-bg);
+            color: white;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 900px;
+            padding: 10px 15px;
+            background: var(--container-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+        }
+
+        .message-input {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 20px;
+            background: var(--bg-color);
+            color: var(--text-color);
+            resize: none;
+            max-height: 100px;
+            font-family: inherit;
+        }
+
+        .send-button {
+            background: var(--button-bg);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .send-button:hover {
+            background: var(--button-hover-bg);
+        }
+
+        .typing-indicator {
+            padding: 8px 15px;
+            background: var(--message-bg);
+            border-radius: 18px;
+            font-size: 0.9em;
+            margin: 5px 0;
+            width: fit-content;
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="{{ url_for('static', filename=recipient.avatar) }}"
+                 class="user-avatar"
+                 onerror="this.src='{{ url_for('static', filename='uploads/avatars/default_avatar.png') }}'">
+            <div class="user-info">
+                <h2 class="user-name">{{ recipient.username }}</h2>
+                <p class="user-status" id="status-indicator">
+                    {% if recipient.is_online %}
+                        онлайн
+                    {% else %}
+                        был(а) {{ recipient.last_seen|format_time }}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="messages-container" id="messages-container">
+            {% for message in messages %}
+            <div class="message {% if message.sender_id == current_user.id %}own{% endif %}" data-id="{{ message.id }}">
+                <div class="message-content">
+                    <div class="message-text">{{ message.content }}</div>
+                    <div class="message-time">
+                        {{ message.sent_at.strftime('%H:%M') }}
+                        {% if message.sender_id == current_user.id %}
+                            {% if message.is_read %}✓✓{% else %}✓{% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="input-container">
+            <textarea class="message-input"
+                      placeholder="Написать сообщение..."
+                      id="message-input"
+                      rows="1"></textarea>
+            <button class="send-button" id="send-button">→</button>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            userId: {{ current_user.id }},
+            recipientId: {{ recipient.id }},
+            chatId: {{ chat.id }},
+            csrfToken: document.querySelector('meta[name="csrf-token"]').content
+        };
+
+        const elements = {
+            messagesContainer: document.getElementById('messages-container'),
+            messageInput: document.getElementById('message-input'),
+            sendButton: document.getElementById('send-button'),
+            statusIndicator: document.getElementById('status-indicator')
+        };
+
+        // Socket.IO подключение
+        const socket = io({
+            transports: ['websocket'],
+            withCredentials: true
+        });
+
+        // Обработчики Socket.IO
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket');
+            socket.emit('join', { userId: config.userId });
+        });
+
+        socket.on('new_message', (message) => {
+            if (message.chat_id === config.chatId) {
+                appendMessage(message);
+                scrollToBottom();
+            }
+        });
+
+        socket.on('user_status', ({ user_id, status }) => {
+            if (user_id === config.recipientId) {
+                updateUserStatus(status);
+            }
+        });
+
+        socket.on('typing', () => {
+            showTypingIndicator();
+        });
+
+        socket.on('stop_typing', () => {
+            hideTypingIndicator();
+        });
+
+        // Функции работы с сообщениями
+        function appendMessage(message) {
+            const isOwn = message.sender_id === config.userId;
+            const messageHTML = `
+                <div class="message ${isOwn ? 'own' : ''}" data-id="${message.id}">
+                    <div class="message-content">
+                        <div class="message-text">${message.content}</div>
+                        <div class="message-time">
+                            ${new Date(message.sent_at).toLocaleTimeString('ru-RU', {timeStyle: 'short'})}
+                            ${isOwn ? (message.is_read ? '✓✓' : '✓') : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            elements.messagesContainer.insertAdjacentHTML('beforeend', messageHTML);
+        }
+
+        // Отправка сообщения
+        async function sendMessage() {
+            const content = elements.messageInput.value.trim();
+            if (!content) return;
+
+            try {
+                const response = await fetch('/api/send_message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': config.csrfToken
+                    },
+                    body: JSON.stringify({
+                        recipient_id: config.recipientId,
+                        content: content
+                    }),
+                    credentials: 'include'
+                });
+
+                if (!response.ok) throw new Error('Ошибка отправки');
+
+                elements.messageInput.value = '';
+                adjustInputHeight();
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert(error.message);
+            }
+        }
+
+        // Вспомогательные функции
+        function adjustInputHeight() {
+            elements.messageInput.style.height = 'auto';
+            elements.messageInput.style.height = elements.messageInput.scrollHeight + 'px';
+        }
+
+        function scrollToBottom() {
+            elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
+        }
+
+        function updateUserStatus(status) {
+            elements.statusIndicator.textContent = status === 'online' ?
+                'онлайн' : `был(а) ${new Date().toLocaleTimeString('ru-RU', {timeStyle: 'short'})}`;
+        }
+
+        // Обработчики событий
+        elements.sendButton.addEventListener('click', sendMessage);
+
+        elements.messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        elements.messageInput.addEventListener('input', () => {
+            adjustInputHeight();
+            socket.emit('typing', { recipientId: config.recipientId });
+        });
+
+        // Инициализация
+        window.addEventListener('DOMContentLoaded', () => {
+            scrollToBottom();
+            setInterval(checkNewMessages, 3000);
+        });
+
+        async function checkNewMessages() {
+            try {
+                const response = await fetch(`/api/check_new_messages?chat_id=${config.chatId}`);
+                const messages = await response.json();
+                messages.forEach(appendMessage);
+            } catch (error) {
+                console.error('Ошибка проверки сообщений:', error);
+            }
+        }
+    </script>
+</body>
+</html>

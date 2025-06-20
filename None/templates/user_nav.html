@@ -1,0 +1,49 @@
+<script>
+    // Передаем данные из Flask в JavaScript
+    const userSettings = {
+        darkMode: {{ current_user.dark_mode|tojson|default('false') }}
+    };
+</script>
+<script src="{{ url_for('static', filename='dark_mode.js') }}"></script>
+
+<style>
+    /* CSS-переменные для светлой и темной темы */
+    :root {
+        --user-nav-bg: #ffffff; /* Белый фон в обычном режиме */
+        --nav-text-color: #007bff; /* Цвет текста в обычном режиме */
+        --border-color: #ccc; /* Цвет границы в обычном режиме */
+    }
+
+    body.dark-mode {
+        --user-nav-bg: #2d2d2d; /* Темно-серый фон в темном режиме */
+        --nav-text-color: #ffffff; /* Белый текст в темном режиме */
+        --border-color: #444; /* Темная граница в темном режиме */
+    }
+</style>
+
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <div class="user-nav" style="display: flex; align-items: center; justify-content: flex-end;
+           background-color: var(--user-nav-bg); /* Используем CSS-переменную */
+           padding: 10px;
+           border-top: 2px solid var(--border-color);">
+        {% if current_user.is_authenticated %}
+            <!-- Для мобильных -->
+            <a href="/messenger" class="nav-link mobile-only" style="margin-right: 10px;">
+                <img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер" style="width: 30px; height: 30px;">
+            </a>
+
+            <a href="/notifications" class="nav-link" style="margin-right: 10px;">
+                <img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления" style="width: 30px; height: 30px;">
+            </a>
+            <div class="user-info" style="display: flex; align-items: center;">
+                <a href="/account">
+                    <img src="{{ url_for('static', filename=(current_user.avatar if current_user.avatar else 'uploads/avatars/default_avatar.png')) }}"
+                         alt="Аватар"
+                         class="avatar"
+                         style="width: 40px; height: 40px; border-radius: 50%;">
+                </a>
+                <a href="/account" style="margin-left: 5px; color: var(--nav-text-color); text-decoration: none;">{{ current_user.username }}</a>
+            </div>
+        {% endif %}
+    </div>
+</body>

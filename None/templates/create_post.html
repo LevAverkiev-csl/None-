@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <div class="container">
+        <h2>Создать новый пост</h2>
+        <form action="{{ url_for('create_post') }}" method="POST" enctype="multipart/form-data" class="create-post-form" onsubmit="return validateFile()">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Основное содержимое поста -->
+            <div class="create-post-field">
+                <textarea name="content" placeholder="Что у вас нового?" required maxlength="2000"></textarea>
+            </div>
+
+            <!-- Поле для тегов -->
+            <div class="create-post-field">
+                <input type="text" name="tags" placeholder="#теги #через #пробел (необязательно)" maxlength="100">
+            </div>
+
+            <!-- Загрузка файла -->
+            <div class="create-post-field">
+                <label for="file-upload" class="custom-file-upload">
+                    <img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Прикрепить" style="width:20px;">
+                    Прикрепить файл
+                </label>
+                <input id="file-upload" type="file" name="file" accept="image/*, video/*, audio/*">
+                <span id="file-name" class="file-name">Файл не выбран</span>
+                <span id="file-error" class="file-error"></span>
+            </div>
+
+            <!-- Кнопка отправки -->
+            <div class="actions">
+                <button type="submit" class="submit-button">
+                    <img src="{{ url_for('static', filename='send_icon.png') }}" alt="Опубликовать">
+                    Опубликовать
+                </button>
+            </div>
+        </form>
+    </div>
+    <style>
+        /* Улучшенные стили для формы */
+        .container {
+            max-width: 600px;
+            padding: 20px;
+            margin-top: 60px;
+        }
+
+        h2 {
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 30px;
+        }
+
+        .create-post-field {
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            height: 150px;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: #5181b8;
+            outline: none;
+        }
+
+        .custom-file-upload {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: var(--button-bg);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .custom-file-upload:hover {
+            background: var(--button-hover-bg);
+        }
+
+        .file-name {
+            margin-left: 15px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .file-error {
+            color: #e74c3c;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 15px;
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-button:hover {
+            background: var(--button-hover-bg);
+        }
+                .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--nav-bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+    </style>
+
+    <script>
+        // Улучшенная валидация файлов
+        const validateFile = () => {
+            const fileInput = document.getElementById('file-upload');
+            const fileError = document.getElementById('file-error');
+            const MAX_SIZE_MB = 50;
+
+            if (!fileInput.files.length) return true;
+
+            const file = fileInput.files[0];
+            const allowedTypes = [
+                'image/jpeg', 'image/png', 'image/gif',
+                'video/mp4', 'video/webm', 'audio/mpeg', 'audio/wav'
+            ];
+
+            // Проверка типа файла
+            if (!allowedTypes.includes(file.type)) {
+                fileError.textContent = 'Недопустимый формат файла';
+                fileError.style.display = 'block';
+                return false;
+            }
+
+            // Проверка размера файла
+            if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+                fileError.textContent = `Файл слишком большой (макс. ${MAX_SIZE_MB}МБ)`;
+                fileError.style.display = 'block';
+                return false;
+            }
+
+            return true;
+        };
+
+        // Обработчик изменения файла
+        document.getElementById('file-upload').addEventListener('change', function(e) {
+            document.getElementById('file-error').style.display = 'none';
+            document.getElementById('file-name').textContent =
+                this.files[0]?.name || 'Файл не выбран';
+        });
+    </script>
+</body>
+{% endblock %}

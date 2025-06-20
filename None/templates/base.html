@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>РусПост</title>
+    <script>
+        // Передаем данные из Flask в JavaScript
+        const userSettings = {
+            darkMode: {{ current_user.dark_mode|tojson|default('false') }}
+        };
+    </script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='dark_mode.js') }}"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+        .nav-item {
+            margin: 0 10px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 10px;
+        }
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .mobile-only {
+            display: none;
+        }
+        @media (max-width: 600px) {
+            .nav {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            .nav-item {
+                margin: 0 5px;
+            }
+            .user-nav {
+                position: relative;
+                margin-left: auto;
+            }
+            .desktop-only {
+                display: none;
+            }
+            .mobile-only {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only">
+                    <a href="/messenger" class="nav-link">
+                        <img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер">
+                    </a>
+                </li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only">
+                        <a href="/account" class="nav-link">
+                            <img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт">
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% else %}
+            <div class="user-nav">
+                <a href="/login" class="nav-link">Вход</a>
+                <a href="/register" class="nav-link">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

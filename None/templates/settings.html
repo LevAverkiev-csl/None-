@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>Настройки</title>
+    <!-- Подключаем Cropper.js CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <script>
+        // Передаем данные из Flask в JavaScript
+        const userSettings = {
+            darkMode: {{ current_user.dark_mode|tojson|default('false') }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='dark_mode.js') }}"></script>
+    <style>
+        /* CSS-переменные для светлой и темной темы */
+        :root {
+            --bg-color: #d7ffd8;
+            --text-color: #000000;
+            --container-bg: #ffffff;
+            --border-color: #ccc;
+            --button-bg: #5cb85c;
+            --button-hover-bg: #4cae4c;
+            --upload-icon-color: #5181b8;
+            --delete-btn-bg: #dc3545;
+            --delete-btn-hover-bg: #c82333;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff; /* Белый текст */
+            --container-bg: #2d2d2d; /* Темно-серый фон */
+            --border-color: #444;
+            --button-bg: #2196F3;
+            --button-hover-bg: #1976D2;
+            --upload-icon-color: #2196F3;
+            --delete-btn-bg: #dc3545;
+            --delete-btn-hover-bg: #c82333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color); /* Основной цвет текста */
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            background-color: var(--nav-bg);
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+
+
+        .settings-container {
+            flex: 1;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .avatar-upload {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .avatar-upload label {
+            display: inline-block;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: var(--container-bg);
+            border: 2px dashed var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .avatar-upload label:hover {
+            background-color: var(--border-color);
+            border-color: var(--upload-icon-color);
+        }
+
+        .avatar-upload img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .avatar-upload input[type="file"] {
+            display: none;
+        }
+
+        .avatar-upload .upload-icon {
+            font-size: 24px;
+            color: var(--upload-icon-color);
+        }
+
+        .delete-btn {
+            background-color: var(--delete-btn-bg);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .delete-btn:hover {
+            background-color: var(--delete-btn-hover-bg);
+        }
+
+        /* Стили для модального окна кадрирования */
+        #crop-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #crop-container {
+            width: 400px;
+            height: 400px;
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+
+        #crop-image {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* Стили для переключателя */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--button-bg);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Круглый переключатель */
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        button {
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 30px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .settings-container {
+                padding: 15px;
+                margin: 10px;
+            }
+
+            .avatar-upload label {
+                width: 120px;
+                height: 120px;
+            }
+        }
+
+        /* Темный режим */
+        body.dark-mode {
+            background-color: var(--bg-color);
+            color: var(--text-color); /* Белый текст */
+        }
+
+        body.dark-mode .settings-container {
+            background-color: var(--container-bg);
+            color: var(--text-color); /* Белый текст */
+        }
+
+        body.dark-mode .avatar-upload label {
+            background-color: var(--container-bg);
+            border-color: var(--border-color);
+        }
+
+        body.dark-mode .avatar-upload label:hover {
+            background-color: var(--border-color);
+            border-color: var(--upload-icon-color);
+        }
+
+        body.dark-mode .upload-icon {
+            color: var(--upload-icon-color);
+        }
+
+        body.dark-mode .delete-btn {
+            background-color: var(--delete-btn-bg);
+        }
+
+        body.dark-mode .delete-btn:hover {
+            background-color: var(--delete-btn-hover-bg);
+        }
+
+        body.dark-mode .slider {
+            background-color: var(--border-color);
+        }
+
+        body.dark-mode input:checked + .slider {
+            background-color: var(--button-bg);
+        }
+
+        /* Убедимся, что весь текст в темном режиме белый */
+        body.dark-mode * {
+            color: var(--text-color) !important; /* Белый текст для всех элементов */
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <h2>Настройки пользователя</h2>
+
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Загрузка аватара -->
+            <div class="avatar-upload">
+                <label for="avatar-upload">
+                    {% if user.avatar %}
+                        <img src="{{ url_for('static', filename=user.avatar) }}" alt="Аватар">
+                    {% else %}
+                        <span class="upload-icon">📁</span>
+                    {% endif %}
+                </label>
+                <input type="file" id="avatar-upload" name="avatar" accept="image/*" onchange="handleAvatarUpload(event)">
+                <input type="hidden" name="cropped_avatar">
+                <input type="hidden" name="crop_data">
+            </div>
+
+            <!-- Основные поля формы -->
+            <div class="form-group">
+                <label>Имя пользователя:</label>
+                <input type="text" name="username" value="{{ user.username }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Описание:</label>
+                <textarea name="description" rows="4">{{ user.description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Темный режим:</label>
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode()" {% if current_user.dark_mode %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <!-- Кнопки в конце формы -->
+            <div class="form-group">
+                <button type="submit">Сохранить изменения</button>
+                <button type="button" onclick="confirmDelete()" class="delete-btn">Удалить аккаунт</button>
+            </div>
+        </form>
+
+        <!-- Скрытая форма для удаления -->
+        <form id="deleteForm" method="POST" action="{{ url_for('delete_account', user_id=current_user.id) }}" style="display: none;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        </form>
+    </div>
+
+    <!-- Модальное окно для кадрирования -->
+    <div id="crop-modal">
+        <div style="background: var(--container-bg); padding: 20px; border-radius: 8px; max-width: 90%; max-height: 90%;">
+            <div id="crop-container">
+                <img id="crop-image" src="" alt="Изображение для кадрирования">
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="cropImage()" style="background: var(--button-bg); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Обрезать</button>
+                <button onclick="closeCropModal()" style="background: #dc3545; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-left: 10px;">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div style="height: 100px;"></div> <!-- Пустое пространство -->
+
+    <!-- Подключаем Cropper.js JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script>
+        let cropper;
+
+        // Открытие модального окна для кадрирования
+        function openCropModal(imageSrc) {
+            const cropModal = document.getElementById('crop-modal');
+            const cropImage = document.getElementById('crop-image');
+            cropImage.src = imageSrc;
+            cropModal.style.display = 'flex';
+
+            // Удаляем предыдущий экземпляр Cropper
+            if (cropper) {
+                cropper.destroy();
+            }
+
+            // Инициализация Cropper.js
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1, // Соотношение сторон 1:1 (квадрат)
+                viewMode: 1, // Ограничение перемещения за пределы изображения
+                autoCropArea: 1, // Автоматическое кадрирование всей области
+                movable: true, // Разрешить перемещение изображения
+                zoomable: true, // Разрешить масштабирование
+                rotatable: false, // Запретить вращение
+                scalable: false, // Запретить изменение пропорций
+                cropBoxMovable: true, // Разрешить перемещение области кадрирования
+                cropBoxResizable: true, // Разрешить изменение размера области кадрирования
+            });
+        }
+
+        // Закрытие модального окна
+        function closeCropModal() {
+            const cropModal = document.getElementById('crop-modal');
+            cropModal.style.display = 'none';
+            if (cropper) {
+                cropper.destroy(); // Уничтожаем Cropper.js
+            }
+        }
+
+        // Обрезка изображения
+        function cropImage() {
+            if (cropper) {
+                // Получаем данные об области кадрирования
+                const cropData = cropper.getData();
+
+                // Удаляем предыдущее скрытое поле
+                const oldInput = document.querySelector('input[name="cropped_avatar"]');
+                if (oldInput) oldInput.remove();
+
+                // Создаем новое изображение для предпросмотра
+                const croppedCanvas = cropper.getCroppedCanvas();
+                const croppedImage = croppedCanvas.toDataURL('image/jpeg');
+                const avatarLabel = document.querySelector('.avatar-upload label');
+                const newImg = new Image();
+                newImg.src = croppedImage;
+                newImg.onload = () => {
+                    avatarLabel.innerHTML = '';
+                    avatarLabel.appendChild(newImg);
+                };
+
+                // Добавляем скрытые поля для передачи данных на сервер
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'cropped_avatar';
+                hiddenInput.value = croppedImage;
+                document.querySelector('form').appendChild(hiddenInput);
+
+                // Добавляем данные об области кадрирования
+                const cropDataInput = document.createElement('input');
+                cropDataInput.type = 'hidden';
+                cropDataInput.name = 'crop_data';
+                cropDataInput.value = JSON.stringify(cropData);
+                document.querySelector('form').appendChild(cropDataInput);
+
+                closeCropModal();
+            }
+        }
+
+        // Обработка загрузки аватара
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    openCropModal(e.target.result); // Открываем модальное окно для кадрирования
+                };
+                reader.readAsDataURL(file);
+            } else {
+                // Если файл не выбран
+                const avatarLabel = document.querySelector('.avatar-upload label');
+                avatarLabel.innerHTML = '<span class="upload-icon">📁</span>';
+            }
+        }
+
+        // Подтверждение удаления аккаунта
+        function confirmDelete() {
+            if (confirm('Вы точно хотите удалить аккаунт? Это действие нельзя отменить!')) {
+                document.getElementById('deleteForm').submit();
+            }
+        }
+    </script>
+</body>
+</html>
+{% endblock %}

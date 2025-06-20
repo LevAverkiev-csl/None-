@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Мои подписки</title>
+    <style>
+        body {
+            background-color: #d7ffd8;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+        .nav-item {
+            margin: 0 5px;
+        }
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            padding: 10px;
+        }
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px 10px; /* Уменьшаем отступы слева и справа */
+        }
+        .subscription-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            margin-left: -10px; /* Сдвигаем блоки немного левее */
+        }
+        .subscription-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 10px; /* Уменьшаем отступ между аватаром и текстом */
+        }
+        .subscription-item a {
+            text-decoration: none;
+            color: #2a5885;
+            font-weight: bold;
+        }
+        .subscription-item a:hover {
+            text-decoration: underline;
+        }
+        .no-subscriptions {
+            text-align: center;
+            color: #888;
+            font-size: 18px;
+        }
+        .subscription-list {
+            padding-left: 0; /* Убираем отступ слева у списка */
+        }
+        .unsubscribe-button {
+            background-color: #ff4d4d; /* Красный цвет */
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 8px 12px;
+            margin-left: auto; /* Кнопка будет прижата к правому краю */
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        .unsubscribe-button:hover {
+            background-color: #cc0000; /* Темнее красный при наведении */
+        }
+        /* Скрываем элементы с классом desktop-only на мобильных устройствах */
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <!-- Навигация -->
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only">
+                    <a href="/messenger" class="nav-link">
+                        <img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер">
+                    </a>
+                </li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only">
+                        <a href="/account" class="nav-link">
+                            <img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт">
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% else %}
+            <div class="user-nav">
+                <a href="/login" class="nav-link">Вход</a>
+                <a href="/register" class="nav-link">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Основной контент -->
+    <main>
+        <div class="container">
+            <h1>Мои подписки</h1>
+            {% if subscriptions %}
+                <ul class="subscription-list">
+                    {% for subscription in subscriptions %}
+                        <li class="subscription-item">
+                            <img src="{{ url_for('static', filename=(subscription.followed.avatar if subscription.followed.avatar else 'uploads/avatars/default_avatar.png')) }}" alt="Аватар">
+                            <a href="{{ url_for('profile', username=subscription.followed.username) }}">{{ subscription.followed.username }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="no-subscriptions">У вас пока нет подписок.</p>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

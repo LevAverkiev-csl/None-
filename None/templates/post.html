@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Пост #{{ post.id }} - РусПост</title>
+    <style>
+        /* CSS-переменные для тем */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #000000;
+            --container-bg: #f8f9fa;
+            --border-color: #dee2e6;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --post-bg: #ffffff;
+            --comment-bg: #f1f3f5;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #1e1e1e;
+            --border-color: #444;
+            --button-bg: #2196F3;
+            --button-hover-bg: #1976D2;
+            --post-bg: #2d2d2d;
+            --comment-bg: #3a3a3a;
+        }
+
+        /* Основные стили */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Навигация */
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: var(--container-bg);
+            z-index: 1000;
+            padding: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            text-decoration: none;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+            margin-right: 5px;
+        }
+
+        /* Стили поста */
+        .post-container {
+            margin-top: 80px;
+            background: var(--post-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .post-author-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+
+        .post-content {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .media-container {
+            margin: 20px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .media-content {
+            width: 100%;
+            max-height: 600px;
+            object-fit: contain;
+        }
+
+        /* Действия с постом */
+        .post-actions {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .post-action {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .post-action img {
+            width: 24px;
+            height: 24px;
+            margin-right: 5px;
+        }
+
+        /* Комментарии */
+        .comments-section {
+            margin-top: 30px;
+        }
+
+        .comment {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--comment-bg);
+            border-radius: 8px;
+        }
+
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .comment-content {
+            flex-grow: 1;
+        }
+
+        .comment-form {
+            margin-top: 30px;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        .comment-submit {
+            margin-top: 10px;
+            padding: 10px 25px;
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+
+        /* Модальные окна */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--container-bg);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 20% auto;
+        }
+
+        /* Мобильная версия */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .post-container {
+                margin-top: 60px;
+                padding: 15px;
+            }
+
+            .nav {
+                padding: 0 10px;
+            }
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <!-- Навигация -->
+    <nav class="nav-container">
+        <div class="nav">
+            <a href="/" class="nav-link">
+                <img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная">
+                Главная
+            </a>
+            <div class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <a href="/create_post" class="nav-link">
+                        <img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост">
+                    </a>
+                    <a href="/profile/{{ current_user.username }}" class="nav-link">
+                        <img src="{{ url_for('static', filename=(current_user.avatar if current_user.avatar else 'default_avatar.png')) }}"
+                             class="avatar"
+                             alt="Профиль">
+                    </a>
+                {% else %}
+                    <a href="/login" class="nav-link">Вход</a>
+                    <a href="/register" class="nav-link">Регистрация</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container">
+        <!-- Пост -->
+        <div class="post-container">
+            <div class="post-header">
+                <img src="{{ url_for('static', filename=(post.author.avatar if post.author.avatar else 'default_avatar.png')) }}"
+                     class="post-author-avatar"
+                     alt="Аватар">
+                <div>
+                    <h2>{{ post.author.username }}</h2>
+                    <small>{{ post.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                </div>
+            </div>
+
+            <div class="post-content">
+                {{ post.content }}
+            </div>
+
+            {% if post.media_path %}
+            <div class="media-container">
+                {% set media_ext = post.media_path.split('.')[-1].lower() %}
+                {% if media_ext in ['mp4', 'webm', 'ogg'] %}
+                    <video class="media-content" controls>
+                        <source src="{{ url_for('static', filename='posts/' + post.media_path) }}"
+                                type="video/{{ media_ext }}">
+                    </video>
+                {% elif media_ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                    <img class="media-content"
+                         src="{{ url_for('static', filename='posts/' + post.media_path) }}"
+                         alt="Медиа">
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="post-actions">
+                <div class="post-action" onclick="toggleLike({{ post.id }})">
+                    <img src="{{ url_for('static', filename='like_logo.png') }}" alt="Лайк">
+                    <span id="like-count">{{ post.likes|length }}</span>
+                </div>
+                <div class="post-action" onclick="toggleComments()">
+                    <img src="{{ url_for('static', filename='comment_icon.png') }}" alt="Комментарии">
+                    <span id="comment-count">{{ post.comments|length }}</span>
+                </div>
+                <div class="post-action" onclick="toggleBookmark({{ post.id }})">
+                    <img src="{{ url_for('static', filename='bookmark_icon.png') }}" alt="Закладки">
+                </div>
+            </div>
+        </div>
+
+        <!-- Комментарии -->
+        <div class="comments-section">
+            <div class="comment-form">
+                <input type="text"
+                       class="comment-input"
+                       placeholder="Написать комментарий..."
+                       id="comment-input">
+                <button class="comment-submit" onclick="addComment()">Отправить</button>
+            </div>
+
+            <div id="comments-list">
+                {% for comment in post.comments %}
+                <div class="comment">
+                    <img src="{{ url_for('static', filename=(comment.author.avatar if comment.author.avatar else 'default_avatar.png')) }}"
+                         class="comment-avatar"
+                         alt="Аватар">
+                    <div class="comment-content">
+                        <strong>{{ comment.author.username }}</strong>
+                        <p>{{ comment.content }}</p>
+                        <small>{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно поделиться -->
+    <div id="share-modal" class="modal">
+        <div class="modal-content">
+            <h3>Поделиться постом</h3>
+            <input type="text"
+                   id="post-url"
+                   value="{{ request.url }}"
+                   readonly
+                   class="comment-input">
+            <button class="comment-submit" onclick="copyUrl()">Копировать ссылку</button>
+        </div>
+    </div>
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        // Лайки
+        async function toggleLike(postId) {
+            try {
+                const response = await fetch(`/like/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const likeCount = document.getElementById('like-count');
+                    likeCount.textContent = data.likes_count;
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Комментарии
+        async function addComment() {
+            const input = document.getElementById('comment-input');
+            const content = input.value.trim();
+
+            if (content) {
+                try {
+                    const response = await fetch(`/comment/{{ post.id }}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ content })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        const commentsList = document.getElementById('comments-list');
+                        const commentCount = document.getElementById('comment-count');
+
+                        // Добавление нового комментария
+                        const commentHTML = `
+                            <div class="comment">
+                                <img src="${data.avatar}"
+                                     class="comment-avatar"
+                                     alt="Аватар">
+                                <div class="comment-content">
+                                    <strong>${data.username}</strong>
+                                    <p>${content}</p>
+                                    <small>Только что</small>
+                                </div>
+                            </div>
+                        `;
+                        commentsList.insertAdjacentHTML('afterbegin', commentHTML);
+
+                        // Обновление счетчика
+                        commentCount.textContent = parseInt(commentCount.textContent) + 1;
+                        input.value = '';
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                }
+            }
+        }
+
+        // Закладки
+        async function toggleBookmark(postId) {
+            try {
+                const response = await fetch(`/bookmark/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        // Поделиться
+        function copyUrl() {
+            const urlInput = document.getElementById('post-url');
+            urlInput.select();
+            document.execCommand('copy');
+            alert('Ссылка скопирована!');
+        }
+
+        // Управление модальными окнами
+        function showShareModal() {
+            document.getElementById('share-modal').style.display = 'block';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.className === 'modal') {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

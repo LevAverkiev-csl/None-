@@ -1,0 +1,788 @@
+/* Глобальные CSS-переменные */
+:root {
+    --bg-color: #d7ffd8;
+    --text-color: #000000;
+    --post-text-color: #000000; /* Добавлено для постов */
+    --container-bg: white;
+    --input-bg: #fafafa; /* Для светлой темы */
+    --border-color: #ccc;
+    --button-bg: #5cb85c;
+    --button-hover-bg: #4cae4c;
+    --upload-icon-color: #5181b8;
+    --delete-btn-bg: #dc3545;
+    --delete-btn-hover-bg: #c82333;
+}
+
+/* Темный режим */
+body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #ffffff;     /* Основной текст белый */
+    --post-text-color: #ffffff; /* Текст в постах черный */
+    --container-bg: #1e1e1e;
+    --input-bg: #2d2d2d;      /* Темный фон для полей ввода */
+    --border-color: #444;
+    --button-bg: #2196F3;
+    --button-hover-bg: #1976D2;
+    --upload-icon-color: #2196F3;
+}
+
+/* Свечение для текста в постах */
+body.dark-mode .post-content {
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.3),
+                 0 0 3px rgba(255, 255, 255, 0.2);
+}
+
+/* Стили для полей ввода в темном режиме */
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+    background-color: var(--input-bg);
+    border: 2px solid var(--border-color);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Применение цветов к постам */
+.post-card,
+.post-item {
+    color: var(--post-text-color);
+}
+
+/* Остальной код остается без изменений */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    padding: 20px;
+}
+
+/* Добавляем глобальные стили для темного режима */
+body.dark-mode {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+body.dark-mode .settings-container,
+body.dark-mode .post-card,
+body.dark-mode .user-profile,
+body.dark-mode form,
+body.dark-mode .post-item,
+body.dark-mode .create-post-form {
+    background-color: var(--container-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+body.dark-mode button {
+    background-color: var(--button-bg);
+    color: white;
+}
+
+body.dark-mode button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+/* Применение переменных */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Пример для контейнеров */
+.container, .settings-container, .post-card, .user-profile {
+    background-color: var(--container-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* Пример для кнопок */
+button {
+    background-color: var(--button-bg);
+    color: white;
+}
+
+button:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.container {
+    width: 90%; /* Ширина контейнера */
+    margin: auto;
+    overflow: hidden; /* Скрытие переполнения */
+}
+
+/* Дизайн для постов */
+.post-card {
+    background: #ffffff; /* Цвет фона поста */
+    border: 1px solid #ddd; /* Цвет границы поста */
+    border-radius: 10px; /* Скругление углов поста */
+    padding: 20px; /* Отступы поста */
+    margin: 20px auto; /* Отступы вверх и вниз, центровка поста */
+    width: 80%; /* Задаем ширину поста */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень поста */
+    display: flex;
+    flex-direction: column; /* Вертикальное расположение элементов */
+    align-items: center; /* Центровка содержимого */
+    transition: transform 0.2s, box-shadow 0.2s; /* Плавные эффекты */
+}
+
+.post-card:hover {
+    transform: scale(1.02); /* Увеличение при наведении */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Увеличенная тень при наведении */
+}
+
+.post-header {
+    width: 100%; /* Заполнение ширины родительского элемента */
+    display: flex;
+    justify-content: center; /* Центровка автора по горизонтали */
+}
+
+.author-username {
+    font-size: 1.2em; /* Размер шрифта для имени автора */
+    font-weight: bold; /* Полужирное начертание */
+    color: #2c3e50; /* Цвет текста */
+    text-decoration: none; /* Убираем подчеркивание */
+    margin-bottom: 10px; /* Отступ снизу */
+}
+
+.post-content {
+    margin: 10px 0;
+    color: var(--post-text-color); /* Используем переменную для цвета текста */
+    text-align: left; /* Центровка текста поста */
+}
+
+.post-date {
+    font-size: 0.8em; /* Размер шрифта для даты */
+    color: #aaaaaa; /* Цвет текста даты */
+    text-align: center; /* Центровка даты */
+}
+
+/* Дизайн для профиля пользователя */
+.user-profile {
+    text-align: center;
+    background: white; /* Цвет фона профиля */
+    border-radius: 10px; /* Скругление углов */
+    padding: 20px; /* Отступы профиля */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень профиля */
+    margin: 20px auto; /* Отступы вверх и вниз, центровка профиля */
+    max-width: 600px; /* Максимальная ширина профиля */
+}
+
+.avatar {
+    width: 50px; /* Установка ширины аватара */
+    height: 50px; /* Установка высоты аватара */
+    border-radius: 50%; /* Скругление аватара */
+}
+
+.username {
+    font-size: 24px; /* Размер шрифта для имени пользователя */
+    color: #333; /* Цвет текста */
+    font-weight: bold; /* Полужирное начертание */
+    margin: 10px 0; /* Отступы */
+    text-shadow: 0 1px 1px #ffffff; /* Тень текста */
+}
+
+.user-description {
+    color: #777; /* Цвет описания пользователя */
+    font-size: 16px; /* Размер шрифта для описания */
+    margin-bottom: 20px; /* Отступ снизу */
+}
+
+/* Дизайн для постов пользователя */
+.user-posts {
+    list-style: none; /* Убираем маркеры списка */
+    padding: 0; /* Убираем отступы */
+}
+
+.post-item {
+    background: #f9f9f9; /* Цвет фона поста пользователя */
+    border: 1px solid #ddd; /* Цвет границы поста пользователя */
+    border-radius: 5px; /* Скругление углов */
+    padding: 30px; /* Отступы */
+    margin-bottom: 10px; /* Отступ снизу */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Тень поста пользователя */
+}
+
+/* Кнопка "Назад" */
+.back-link {
+    display: inline-block; /* Инлайн-блок */
+    margin-top: 20px; /* Отступ сверху */
+    background: #5cb85c; /* Цвет кнопки */
+    color: white; /* Цвет текста */
+    padding: 10px 15px; /* Отступы кнопки */
+    border-radius: 5px; /* Скругление углов кнопки */
+    text-decoration: none; /* Убираем подчеркивание */
+}
+
+.back-link:hover {
+    background: #4cae4c; /* Цвет кнопки при наведении */
+}
+
+/* Дизайн для форм */
+form {
+    background: white; /* Цвет фона форм */
+    padding: 20px; /* Отступы форм */
+    border-radius: 10px; /* Скругление углов форм */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень форм */
+    max-width: 400px; /* Максимальная ширина форм */
+    margin: 20px auto; /* Отступы вверх и вниз, центровка форм */
+    transition: box-shadow 0.3s; /* Плавный переход для теней */
+}
+
+form:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Повышенная тень при наведении */
+}
+
+form input[type="text"],
+form input[type="password"],
+form textarea {
+    width: 90%; /* Уменьшена ширина до 90% */
+    margin-left: 20px; /* Сдвиг влево для полей ввода */
+    padding: 10px; /* Отступы полей */
+    margin: 10px 0; /* Отступы */
+    background-color: var(--input-bg); /* Используем переменную для фона */
+    border: 1px solid #ddd; /* Цвет границы */
+    border-radius: 20px; /* Скругление углов поля */
+    transition: border-color 0.3s; /* Плавный переход для границ */
+}
+
+form input[type="text"]:focus,
+form input[type="password"]:focus,
+form textarea:focus {
+    border-color: #5cb85c; /* Цвет границы при фокусе */
+    outline: none; /* Убираем обводку */
+}
+
+/* Кнопки */
+button {
+    background: #5cb85c; /* Цвет кнопки */
+    color: white; /* Цвет текста кнопки */
+    border: none; /* Убираем границу */
+    padding: 10px 15px; /* Отступы кнопки */
+    border-radius: 5px; /* Скругление углов кнопки */
+    cursor: pointer; /* Изменение курсора при наведении */
+    font-size: 16px; /* Размер шрифта */
+    transition: background-color 0.3s, transform 0.3s; /* Плавный переход для кнопок */
+}
+
+button:hover {
+    background: #75d375; /* Цвет кнопки при наведении */
+    transform: translateY(-2px); /* Лёгкий подъем кнопки при наведении */
+}
+
+/* Дополнительные стили для пользовательских форм и кнопок */
+button.primary {
+    margin-bottom: 15px;
+    border-radius: 15px;
+    background: #5cb85c; /* Цвет специальной кнопки */
+}
+
+button.primary:hover {
+    background: #45b300; /* Цвет специальной кнопки при наведении */
+}
+
+/* Стиль для ссылок */
+a {
+    color: #007bff; /* Цвет ссылок */
+    text-decoration: none; /* Убираем подчеркивание */
+}
+
+a:hover {
+    text-decoration: underline; /* Подчеркивание при наведении */
+}
+
+.search-container {
+    text-align: center; /* Центровка контейнера поиска */
+    margin: 20px 0; /* Отступы */
+}
+
+.search-container h2 {
+    font-family: Arial, sans-serif; /* Шрифт заголовка поиска */
+    font-size: 24px; /* Размер шрифта заголовка */
+    margin-bottom: 10px; /* Отступ снизу */
+}
+
+.search-container form {
+    display: inline-flex; /* Инлайновый флекс */
+    align-items: center; /* Центровка элементов */
+}
+
+.search-container input[type="text"] {
+    padding: 10px; /* Отступы */
+    border: 1px solid #ccc; /* Цвет границы */
+    border-radius: 5px 0 0 5px; /* Скругление углов */
+    width: 250px; /* Ширина поля поиска */
+    outline: none; /* Убираем обводку */
+}
+
+.search-container button {
+    padding: 10px; /* Отступы */
+    border: none; /* Убираем границу */
+    background-color: #007BFF; /* Цвет кнопки поиска */
+    border-radius: 0 5px 5px 0; /* Скругление углов */
+    cursor: pointer; /* Изменение курсора при наведении */
+}
+
+.search-container button img {
+    width: 20px; /* Размер значка лупы */
+    height: 20px; /* Высота значка лупы */
+}
+
+/* Стили для навигационного меню */
+nav {
+    display: flex; /* Флекс-контейнер */
+    justify-content: space-around; /* Распределение кнопок по горизонтали */
+    background-color: #f8f9fa; /* Цвет фона навигации */
+    padding: 10px 0; /* Отступы сверху и снизу */
+    position: fixed; /* Фиксируем навигацию */
+    width: 100%; /* Ширина навигации на весь экран */
+    z-index: 1000; /* Повышаем уровень слоя */
+}
+
+/* Стили для кнопок навигации */
+.nav-button {
+    display: flex; /* Флекс-контейнер для кнопок */
+    align-items: center; /* Центровка изображений */
+    justify-content: center; /* Центрирование текста */
+    text-decoration: none; /* Убираем подчеркивание */
+    background-color: #28a745; /* Цвет фона кнопки */
+    color: white; /* Цвет текста */
+    border-radius: 5px; /* Скругление углов */
+    width: 30px; /* Ширина кнопки */
+    height: 30px; /* Высота кнопки */
+    border: none; /* Убираем границу */
+    cursor: pointer; /* Изменение курсора при наведении */
+    margin: 0 5px; /* Отступы между кнопками */
+}
+
+.nav-button img {
+    width: 20px; /* Ширина изображения */
+    height: 20px; /* Высота изображения */
+}
+
+/* Стили для мобильной версии */
+@media (max-width: 768px) {
+    nav {
+        flex-direction: row; /* Горизонтальное расположение кнопок */
+        justify-content: space-around; /* Распределяем кнопки по горизонтали */
+        position: fixed; /* Фиксируем меню */
+        bottom: 0; /* Размещаем меню внизу */
+    }
+    nav a {
+        flex: 1; /* Занимаем равное пространство */
+        text-align: center; /* Центрируем текст */
+    }
+}
+
+/* Стили для десктопной версии */
+@media (min-width: 769px) {
+    nav {
+        top: 0; /* Размещаем меню сверху */
+        flex-direction: row; /* Горизонтальное расположение кнопок */
+    }
+}
+
+@media (max-width: 600px) {
+    body {
+        font-size: 14px; /* Уменьшение размера шрифта для мобильных устройств */
+    }
+    nav {
+        flex-direction: column; /* Вертикальное расположение навигации */
+    }
+    .post {
+        padding: 5px; /* Уменьшение отступов */
+    }
+}
+
+/* Стили для кнопок отправки */
+.submit-button-container {
+    margin-top: 20px; /* Сдвиг кнопки вниз на 20 пикселей */
+}
+
+/* Настроенный стиль для формы создания поста */
+.create-post-form {
+    background: #ffffff; /* Цвет фона формы */
+    padding: 20px; /* Отступы формы */
+    border-radius: 10px; /* Скругление углов формы */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Тень для глубины */
+    max-width: 500px; /* Максимальная ширина формы */
+    margin: 20px auto; /* Центровка формы */
+}
+
+/* Поля ввода для создания поста */
+.create-post-field {
+    margin-left: 20px; /* Сдвиг влево для полей ввода */
+}
+
+.create-post-field input,
+.create-post-field textarea {
+    padding: 12px; /* Отступы для полей */
+    border: 1px solid #ccc; /* Цвет границы */
+    border-radius: 15px; /* Скругление углов */
+    width: 90%; /* Уменьшена ширина до 90% */
+    margin: 10px 0; /* Отступы между полями */
+    font-size: 16px; /* Размер шрифта */
+}
+
+/* Стиль для кнопки отправки */
+.submit-button {
+    background-color: #4CAF50; /* Зеленый */
+    border: none;
+    color: white;
+    padding: 8px 15px; /* Уменьшенные отступы для кнопки */
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex; /* Позиционирование с изображением */
+    align-items: center; /* Центрирование содержимого */
+    font-size: 16px; /* Уменьшенный размер шрифта */
+    border-radius: 20px; /* Скругление углов */
+    cursor: pointer; /* Курсор при наведении */
+    margin-top: 15px; /* Отступ сверху */
+    margin-left: 20px; /* Сдвиг кнопки вправо */
+    transition: background-color 0.3s; /* Плавный переход цвета */
+}
+
+.submit-button img {
+    width: 15px; /* Уменьшение ширины изображения */
+    height: 15px; /* Уменьшение высоты изображения */
+    margin-right: 5px; /* Отступ между изображением и текстом */
+}
+
+.submit-button:hover {
+    background-color: #45a049; /* Цвет кнопки при наведении */
+}
+
+/* Стиль для текстового поля */
+.create-post-field textarea {
+    resize: vertical; /* Позволить только вертикальное изменение размера */
+    min-height: 100px; /* Минимальная высота текстового поля */
+}
+
+/* Стиль для кнопки загрузки файла */
+.upload-button {
+    display: inline-block; /* Инлайн-блок */
+    background-color: #007bff; /* Цвет кнопки */
+    color: white; /* Цвет текста */
+    padding: 10px 20px; /* Отступы кнопки */
+    border-radius: 15px; /* Скругление углов кнопки */
+    cursor: pointer; /* Изменение курсора при наведении */
+    font-size: 16px; /* Размер шрифта */
+    transition: background-color 0.3s, transform 0.2s; /* Плавный переход */
+}
+
+.upload-button:hover {
+    background-color: #0056b3; /* Темный цвет кнопки при наведении */
+    transform: scale(1.05); /* Лёгкое увеличение при наведении */
+}
+
+/* Стили для скрытого поля загрузки файла */
+input[type="file"] {
+    display: none; /* Скрываем стандартное поле загрузки файла */
+}
+
+/* Стиль для контейнера загрузки файла */
+.upload-container {
+    display: flex; /* Флекс-контейнер для кнопки и текста */
+    align-items: center; /* Центровка по вертикали */
+    margin: 15px 0; /* Отступы сверху и снизу */
+}
+
+/* Стиль текста около кнопки */
+.upload-text {
+    margin-left: 10px; /* Отступ слева от текста */
+    font-size: 16px; /* Размер шрифта */
+    color: #333; /* Цвет текста */
+}
+
+.change_password {
+    font: auto;
+    border-radius: 50px;
+}
+
+.media-container {
+    margin: 15px 0;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 100%;
+    background: #000;
+}
+
+.media-content {
+    display: block;
+    max-width: 100%;
+    height: auto; /* Адаптивная высота */
+    margin: 0 auto;
+}
+
+/* Ограничение максимальной высоты для изображений и видео */
+img.media-content, video.media-content {
+    max-height: 300px; /* Ограничение высоты */
+    object-fit: cover; /* Обеспечивает сохранение пропорций */
+}
+
+/* Аудио */
+audio.media-content {
+    width: 100%;
+    padding: 10px 0;
+}
+
+/* Уменьшение размера для мобильных устройств */
+@media (max-width: 600px) {
+    .media-content {
+        max-height: 200px; /* Меньшая высота для мобильных устройств */
+    }
+}
+
+/* Стили для модального окна перевода */
+#translate-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.translate-container {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.translate-header {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.translate-selectors {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.translate-select {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    width: 100%;
+}
+
+#translate-button {
+    width: 100%;
+    padding: 10px;
+    background: var(--button-bg);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+#translate-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
+}
+
+/* Стили аудио-проигрывателя для светлого режима */
+.audio-player {
+    background-color: #ffffff;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.audio-controls button {
+    background-color: #5181b8;
+    color: white;
+}
+
+.progress-container {
+    background-color: #e0e0e0;
+}
+
+.progress {
+    background-color: #5181b8;
+}
+
+.time {
+    color: #333333;
+}
+
+/* Стили аудио-проигрывателя для темного режима */
+body.dark-mode .audio-player {
+    background-color: #2d2d2d;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .audio-controls button {
+    background-color: #2196F3;
+}
+
+body.dark-mode .progress-container {
+    background-color: #444444;
+}
+
+body.dark-mode .progress {
+    background-color: #2196F3;
+}
+
+body.dark-mode .time {
+    color: #cccccc;
+}
+
+/* Общие стили для обоих режимов */
+.audio-player {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.audio-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.audio-controls button {
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+.audio-controls button:hover {
+    opacity: 0.9;
+}
+
+.progress-container {
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    margin-top: 10px;
+}
+
+.progress {
+    height: 100%;
+    border-radius: 5px;
+    width: 0%;
+}
+
+.time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* Общие стили аудио-проигрывателя */
+.audio-player {
+    --primary-color: #5181b8;
+    --secondary-color: #e0e0e0;
+    --text-color: #333;
+    --progress-height: 3px;
+    --mobile-scale: 0.9;
+}
+
+/* Темная тема */
+body.dark-mode .audio-player {
+    --primary-color: #2196F3;
+    --secondary-color: #444;
+    --text-color: #ccc;
+}
+
+/* Основные элементы */
+.audio-player {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 15px;
+    position: relative;
+}
+
+/* Контейнер прогресс-бара */
+.progress-container {
+    width: 100%;
+    height: var(--progress-height);
+    background: var(--secondary-color);
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 12px 0 8px;
+    position: relative;
+}
+
+/* Прогресс-бар */
+.progress {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.1s linear;
+}
+
+/* Временные метки */
+.time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-color);
+    margin-top: 4px;
+}
+
+/* Мобильная версия */
+@media (max-width: 768px) {
+    .audio-player {
+        margin-left: 15px;  /* Сдвигаем плеер вправо */
+        margin-right: -10px; /* Компенсируем увеличение ширины */
+        transform: scale(0.95); /* Небольшое уменьшение размера */
+        transform-origin: left center; /* Точка трансформации */
+        padding: 10px;
+    }
+
+    .progress-container {
+        margin: 8px 0 6px;
+        height: calc(var(--progress-height) * 0.8);
+    }
+
+    .time {
+        font-size: 10px;
+        margin-top: 2px;
+    }
+
+    .audio-controls button {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .audio-controls img {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .volume-control {
+        width: 80px !important;
+    }
+}

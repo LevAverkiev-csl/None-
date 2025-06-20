@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Уведомления</title>
+    <style>
+        :root {
+            --bg-color: #d7ffd8;
+            --text-color: #000000;
+            --container-bg: #ffffff;
+            --border-color: #ccc;
+            --nav-bg: #f8f9fa;
+            --nav-text-color: #007bff;
+            --notification-bg: #ffffff;
+            --notification-read-bg: #f0f0f0;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #2d2d2d;
+            --border-color: #444;
+            --nav-bg: #ffffff;
+            --nav-text-color: #ffffff;
+            --notification-bg: #2d2d2d;
+            --notification-read-bg: #3d3d3d;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            color: var(--text-color);
+        }
+
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            background-color: var(--nav-bg);
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .notification {
+            background: var(--notification-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .notification.read {
+            background: var(--notification-read-bg);
+        }
+
+        .notification img {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .notification-content {
+            flex-grow: 1;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .notification-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .notification-actions button:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <!-- Навигация -->
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only">
+                    <a href="/messenger" class="nav-link">
+                        <img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер">
+                    </a>
+                </li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only">
+                        <a href="/account" class="nav-link">
+                            <img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт">
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% else %}
+            <div class="user-nav">
+                <a href="/login" class="nav-link">Вход</a>
+                <a href="/register" class="nav-link">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Основной контент -->
+    <main>
+        <div class="container">
+            <h1>Уведомления</h1>
+            {% if not unread and not read %}
+                <div class="notification">У вас пока нет уведомлений.</div>
+            {% else %}
+                {% if unread %}
+                    <h2>Непрочитанные уведомления</h2>
+                    {% for notification in unread %}
+                        <div class="notification" data-notification-id="{{ notification.id }}">
+                            <img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомление">
+                            <div class="notification-content">
+                                <span>{{ notification.content }}</span>
+                                <small>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                            </div>
+                            <div class="notification-actions">
+                                <button onclick="markAsRead({{ notification.id }})">Прочитано</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                {% if read %}
+                    <h2>Старые уведомления</h2>
+                    {% if read|length >= 2 %}
+                        <button id="show-old-notifications" onclick="toggleOldNotifications()">Показать старые уведомления</button>
+                        <div id="old-notifications" style="display: none;">
+                            {% for notification in read %}
+                                <div class="notification read" data-notification-id="{{ notification.id }}">
+                                    <img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомление">
+                                    <div class="notification-content">
+                                        <span>{{ notification.content }}</span>
+                                        <small>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {% for notification in read %}
+                            <div class="notification read" data-notification-id="{{ notification.id }}">
+                                <img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомление">
+                                <div class="notification-content">
+                                    <span>{{ notification.content }}</span>
+                                    <small>{{ notification.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Скрипт для работы с уведомлениями -->
+    <script>
+        // Переключение видимости старых уведомлений
+        function toggleOldNotifications() {
+            const oldNotifications = document.getElementById('old-notifications');
+            const button = document.getElementById('show-old-notifications');
+            if (oldNotifications.style.display === 'none') {
+                oldNotifications.style.display = 'block';
+                button.textContent = 'Скрыть старые уведомления';
+            } else {
+                oldNotifications.style.display = 'none';
+                button.textContent = 'Показать старые уведомления';
+            }
+        }
+
+        // Отметить уведомление как прочитанное
+        function markAsRead(notificationId) {
+            fetch(`/notifications/${notificationId}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            }).then(response => {
+                if (response.ok) {
+                    location.reload(); // Перезагружаем страницу для обновления списка
+                } else {
+                    console.error('Ошибка при отметке уведомления как прочитанного');
+                }
+            }).catch(error => {
+                console.error('Ошибка:', error);
+            });
+        }
+
+        // Переключение темы
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+        }
+
+        // При загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDarkMode = localStorage.getItem('darkMode') === 'true';
+            if (isDarkMode) {
+                document.body.classList.add('dark-mode');
+            }
+
+            const toggleButton = document.getElementById('toggle-dark-mode');
+            if (toggleButton) {
+                toggleButton.addEventListener('click', toggleDarkMode);
+            } else {
+                console.error('Переключатель темного режима не найден');
+            }
+        });
+    </script>
+</body>
+</html>

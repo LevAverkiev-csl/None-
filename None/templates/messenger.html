@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Мессенджер - РусПост</title>
+    <style>
+        :root {
+            --bg-color: #d7ffd8;
+            --text-color: #000000;
+            --container-bg: #ffffff;
+            --border-color: #ccc;
+            --button-bg: #5181b8;
+            --button-hover-bg: #406a9b;
+            --nav-bg: #f8f9fa;
+            --nav-text-color: #007bff;
+            --nav-hover-bg: #e9ecef;
+            --chat-bg: #ffffff;
+            --chat-text-color: #222;
+            --unread-bg: #e3f2fd;
+            --active-chat-bg: #ebf5ff;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #2d2d2d;
+            --border-color: #444;
+            --button-bg: #2196F3;
+            --button-hover-bg: #1976D2;
+            --nav-bg: #1e1e1e;
+            --nav-text-color: #ffffff;
+            --nav-hover-bg: #444;
+            --chat-bg: #2d2d2d;
+            --chat-text-color: #ffffff;
+            --unread-bg: #1a3a5a;
+            --active-chat-bg: #2a4365;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            color: var(--text-color);
+        }
+
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            background-color: var(--nav-bg);
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .messenger-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            height: calc(100vh - 70px);
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .chats-list {
+            width: 350px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .search-bar {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--container-bg);
+            color: var(--text-color);
+            outline: none;
+        }
+
+        .chat-item {
+            display: flex;
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+        }
+
+        .chat-item:hover {
+            background: var(--nav-hover-bg);
+        }
+
+        .chat-item.active {
+            background: var(--active-chat-bg);
+        }
+
+        .chat-item.unread {
+            background: var(--unread-bg);
+        }
+
+        .chat-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 12px;
+            object-fit: cover;
+        }
+
+        .chat-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .chat-name {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-time {
+            font-size: 12px;
+            color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .chat-preview {
+            display: flex;
+            font-size: 14px;
+            color: var(--text-color);
+            opacity: 0.8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .unread-count {
+            background: var(--button-bg);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .chat-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .chat-empty img {
+            width: 100px;
+            height: 100px;
+            opacity: 0.5;
+            margin-bottom: 20px;
+        }
+
+        .chat-empty p {
+            color: var(--text-color);
+            opacity: 0.7;
+            margin-bottom: 20px;
+        }
+
+        .chat-empty button {
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .messenger-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .chats-list {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .desktop-only {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only"><a href="/messenger" class="nav-link"><img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер"></a></li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only"><a href="/account" class="nav-link"><img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт"></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% else %}
+            <div class="user-nav">
+                <a href="/login" class="nav-link">Вход</a>
+                <a href="/register" class="nav-link">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <main>
+        <div class="messenger-container">
+            <div class="chats-list">
+                <div class="search-bar">
+                    <input type="text" placeholder="Поиск диалогов...">
+                </div>
+
+                {% if conversations %}
+                    {% for conv in conversations %}
+                    <a href="{{ url_for('chat', user_id=conv.user.id) }}" class="chat-item {% if conv.unread_count > 0 %}unread{% endif %} {% if conv.user.id == active_chat_id %}active{% endif %}">
+                        <img src="{{ url_for('static', filename=(conv.user.avatar if conv.user.avatar else 'uploads/avatars/default_avatar.png')) }}" class="chat-avatar">
+                        <div class="chat-info">
+                            <div class="chat-header">
+                                <div class="chat-name">{{ conv.user.username }}</div>
+                                {% if conv.last_message %}
+                                <div class="message-time" title="{{ conv.last_message.sent_at.strftime('%d.%m.%Y %H:%M') if conv.last_message.sent_at else '' }}">
+                                    {{ conv.last_message.sent_at|format_time if conv.last_message.sent_at else '' }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="chat-preview">
+                                {{ conv.last_message_preview }}
+                                {% if conv.unread_count > 0 %}
+                                <div class="unread-count">{{ conv.unread_count }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="chat-empty">
+                        <img src="{{ url_for('static', filename='empty_chat.png') }}" alt="Нет диалогов">
+                        <p>У вас пока нет диалогов</p>
+                        <button onclick="location.href='/search'">Найти друзей</button>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="chat-container">
+                {% if active_chat_id %}
+                    <!-- Здесь будет загружен чат через AJAX -->
+                    <div class="chat-empty">
+                        <p>Выберите диалог для просмотра сообщений</p>
+                    </div>
+                {% else %}
+                    <div class="chat-empty">
+                        <img src="{{ url_for('static', filename='empty_chat.png') }}" alt="Нет диалогов">
+                        <p>Выберите диалог для просмотра сообщений</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        // Поиск диалогов
+        $('.search-bar input').on('input', function() {
+            const query = $(this).val().toLowerCase();
+            $('.chat-item').each(function() {
+                const name = $(this).find('.chat-name').text().toLowerCase();
+                $(this).toggle(name.includes(query));
+            });
+        });
+
+        // Загрузка чата при выборе диалога
+        $('.chat-item').on('click', function(e) {
+            e.preventDefault();
+            const url = $(this).attr('href');
+
+            // Помечаем активный чат
+            $('.chat-item').removeClass('active');
+            $(this).addClass('active');
+
+            // Загружаем чат
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    $('.chat-container').html(data);
+
+                    // Прокручиваем вниз
+                    const messagesContainer = $('.messages-container');
+                    if (messagesContainer.length) {
+                        messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+                    }
+                }
+            });
+
+            // Помечаем сообщения как прочитанные
+            if ($(this).hasClass('unread')) {
+                const userId = url.split('/').pop();
+                $.post(`/mark_as_read/${userId}`, {
+                    _csrf_token: csrfToken
+                });
+
+                // Обновляем счетчик непрочитанных
+                $(this).find('.unread-count').remove();
+                $(this).removeClass('unread');
+            }
+        });
+
+        // Автоматическое обновление списка чатов
+        function updateChatsList() {
+            $.get('/get_conversations', function(data) {
+                $('.chats-list').html(data);
+            });
+        }
+
+        // Обновляем список каждые 30 секунд
+        setInterval(updateChatsList, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ user.username }} - РусПост</title>
+    <style>
+        :root {
+            --bg-color: #d7ffd8;
+            --text-color: #000000;
+            --container-bg: #ffffff;
+            --border-color: #ccc;
+            --button-bg: #5181b8;
+            --button-hover-bg: #406a9b;
+            --nav-bg: #f8f9fa;
+            --nav-text-color: #007bff;
+            --nav-hover-bg: #e9ecef;
+            --post-bg: #ffffff;
+            --post-text-color: #222;
+            --comment-bg: #f0f2f5;
+            --comment-text-color: #222;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #2d2d2d;
+            --border-color: #444;
+            --button-bg: #2196F3;
+            --button-hover-bg: #1976D2;
+            --nav-bg: #ffffff;
+            --nav-text-color: #ffffff;
+            --nav-hover-bg: #444;
+            --post-bg: #2d2d2d;
+            --post-text-color: #ffffff;
+            --comment-bg: #3a3a3a;
+            --comment-text-color: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            color: var(--text-color);
+        }
+
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--nav-bg);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .section-switcher {
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+        }
+
+        .section-switcher .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-switcher .tab {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-color);
+        }
+
+        .section-switcher .tab.active {
+            border-bottom: 3px solid var(--button-bg);
+        }
+
+        .post {
+            background: var(--post-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .post-author img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .post-author a {
+            font-weight: 500;
+            color: var(--nav-text-color);
+            text-decoration: none;
+        }
+
+        .post-menu {
+            margin-left: auto;
+            position: relative;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .post-menu-dots {
+            font-size: 20px;
+            color: var(--text-color);
+        }
+
+        .post-menu-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 25px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+            min-width: 160px;
+        }
+
+        .post-menu-dropdown.show {
+            display: block;
+        }
+
+        .post-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .post-content {
+            color: var(--post-text-color);
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .post-actions div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .post-actions img {
+            width: 22px;
+            height: 22px;
+        }
+
+        .comments-section {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .comment {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .comment img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .comment-content {
+            background: var(--comment-bg);
+            padding: 10px 14px;
+            border-radius: 12px;
+            width: 100%;
+        }
+
+        .comment-content a {
+            font-weight: 500;
+            color: var(--nav-text-color);
+            text-decoration: none;
+        }
+
+        .comment-content p {
+            color: var(--comment-text-color);
+            margin-top: 4px;
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .comment-form input {
+            flex: 1;
+            padding: 8px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        .comment-form button {
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .media-container {
+            margin: 15px 0;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .media-content {
+            width: 100%;
+            height: auto;
+            max-width: 600px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        video.media-content {
+            max-height: 500px;
+            background: var(--bg-color);
+        }
+
+        .audio-player {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .audio-controls button {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            position: relative;
+        }
+
+        .audio-controls button img {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .audio-controls button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 5px;
+            background-color: var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: var(--button-bg);
+            border-radius: 5px;
+            width: 0%;
+        }
+
+        .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-color);
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .desktop-only {
+                display: none;
+            }
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .profile-header img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid var(--button-bg);
+            margin-right: 20px;
+        }
+
+        .profile-header h1 {
+            margin: 0;
+            color: var(--text-color);
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .profile-header p {
+            color: var(--text-color);
+            margin: 5px 0;
+        }
+
+        .profile-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .profile-stats > div {
+            text-align: center;
+        }
+
+        .profile-stats > div div {
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .profile-stats > div span {
+            font-weight: 500;
+            color: var(--nav-text-color);
+        }
+
+        .profile-links a {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--button-bg);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only"><a href="/messenger" class="nav-link"><img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер"></a></li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only"><a href="/account" class="nav-link"><img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт"></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% endif %}
+    </div>
+
+    <main>
+        <div style="max-width: 800px; margin: 0 auto; padding: 12px;">
+            <!-- Шапка профиля -->
+            <div style="background: var(--container-bg); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 15px;">
+                <div class="profile-header">
+                    <img src="{{ url_for('static', filename=(user.avatar if user.avatar else 'uploads/avatars/default_avatar.png')) }}"
+                         alt="Аватар пользователя">
+                    <div>
+                        <h1>{{ user.username }}</h1>
+                        <p>{{ user.description }}</p>
+
+                        {% if user.links %}
+                        <div class="profile-links">
+                            {% for link in user.links %}
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                                {{ link.title }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="profile-stats">
+                            <div>Подписки: <span>{{ user.following.count() }}</span></div>
+                            <div>Подписчики: <span>{{ user.followers.count() }}</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Плитки переключения секций -->
+            <div class="section-switcher">
+                <div class="tabs">
+                    <button id="posts-tab" class="tab active" onclick="toggleSection('posts')">
+                        <h2>Мои посты</h2>
+                    </button>
+                    <button id="bookmarks-tab" class="tab" onclick="toggleSection('bookmarks')">
+                        <h2>Закладки</h2>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Секция с постами -->
+            <div id="posts-section" style="display: block;">
+                {% if user.posts %}
+                    {% for post in user.posts %}
+                    <div class="post" id="post-{{ post.id }}">
+                        <div class="post-header">
+                            <div class="post-author">
+                                <img src="{{ url_for('static', filename=(post.author.avatar if post.author.avatar else 'uploads/avatars/default_avatar.png')) }}" alt="Аватар">
+                                <a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a>
+                            </div>
+                            <div class="post-menu" onclick="togglePostMenu(event, {{ post.id }})">
+                                <span class="post-menu-dots">•••</span>
+                                <div class="post-menu-dropdown" id="post-menu-{{ post.id }}">
+                                    <div class="post-menu-item" onclick="translatePost({{ post.id }})">Перевести</div>
+                                    <div class="post-menu-item" onclick="reportPost({{ post.id }})">Пожаловаться</div>
+                                    {% if current_user.id == post.author_id %}
+                                        <div class="post-menu-item" onclick="deletePost({{ post.id }})">Удалить</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="post-content">{{ post.content }}</div>
+                        {% if post.media_path %}
+                            <div class="media-container">
+                                {% set media_ext = post.media_path.split('.')[-1].lower() %}
+                                {% if media_ext in ['mp4', 'webm', 'ogg'] %}
+                                    <video controls class="media-content" preload="metadata">
+                                        <source src="{{ url_for('static', filename='posts/' ~ post.media_path) }}" type="video/{{ media_ext }}">
+                                        Ваш браузер не поддерживает видео тег.
+                                    </video>
+                                {% elif media_ext in ['mp3', 'wav', 'ogg'] %}
+                                    <div class="audio-player">
+                                        <audio id="audio-{{ post.id }}" src="{{ url_for('static', filename='posts/' ~ post.media_path) }}"></audio>
+                                        <div class="audio-controls">
+                                            <button id="play-pause-{{ post.id }}">
+                                                <img src="{{ url_for('static', filename='play.png') }}" alt="Play" class="play-icon">
+                                                <img src="{{ url_for('static', filename='pause.png') }}" alt="Pause" class="pause-icon" style="display: none;">
+                                            </button>
+                                            <input type="range" id="volume-{{ post.id }}" min="0" max="1" step="0.1" value="1">
+                                        </div>
+                                        <div class="progress-container" id="progress-container-{{ post.id }}">
+                                            <div class="progress" id="progress-{{ post.id }}"></div>
+                                        </div>
+                                        <div class="time">
+                                            <span id="current-time-{{ post.id }}">0:00</span>
+                                            <span id="duration-{{ post.id }}">0:00</span>
+                                        </div>
+                                    </div>
+                                {% elif media_ext in ['png', 'jpg', 'jpeg', 'gif'] %}
+                                    <img src="{{ url_for('static', filename='posts/' ~ post.media_path) }}" alt="Медиа вложение" class="media-content" loading="lazy">
+                                {% else %}
+                                    <div class="media-error">
+                                        Файл не поддерживается: {{ post.media_path }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="post-actions">
+                            <div onclick="Post.like({{ post.id }})">
+                                <img src="{{ url_for('static', filename='like_logo.png') }}"
+                                     id="like-icon-{{ post.id }}"
+                                     class="{% if post.is_liked_by(current_user) %}like-active{% endif %}"
+                                     alt="Лайк">
+                                <span id="like-count-{{ post.id }}">{{ post.likes.count() }}</span>
+                            </div>
+                            <div onclick="Post.toggleComments({{ post.id }})">
+                                <img src="{{ url_for('static', filename='comment_icon.png') }}" alt="Комментарии">
+                                <span id="comment-count-{{ post.id }}">{{ post.comments.count() }}</span>
+                            </div>
+                            <div onclick="Post.bookmark({{ post.id }})">
+                                <img src="{{ url_for('static', filename='bookmark_icon.png') }}"
+                                     id="bookmark-icon-{{ post.id }}"
+                                     class="{% if post.is_bookmarked_by(current_user) %}bookmark-active{% endif %}"
+                                     alt="Закладки">
+                            </div>
+                        </div>
+
+                        <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                            {% for comment in post.comments %}
+                            <div class="comment">
+                                <img src="{{ url_for('static', filename=(comment.user.avatar if comment.user.avatar else 'uploads/avatars/default_avatar.png') }}" alt="Аватар">
+                                <div class="comment-content">
+                                    <a href="{{ url_for('profile', username=comment.user.username) }}">{{ comment.user.username }}</a>
+                                    <p>{{ comment.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <form class="comment-form" onsubmit="return addComment(event, {{ post.id }})">
+                                <input type="text" name="content" placeholder="Написать комментарий..." required>
+                                <button type="submit">Отправить</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <script>
+                        // Инициализация аудиоплеера для каждого поста
+                        const audio{{ post.id }} = document.getElementById('audio-{{ post.id }}');
+                        const playPauseButton{{ post.id }} = document.getElementById('play-pause-{{ post.id }}');
+                        const playIcon{{ post.id }} = playPauseButton{{ post.id }}.querySelector('.play-icon');
+                        const pauseIcon{{ post.id }} = playPauseButton{{ post.id }}.querySelector('.pause-icon');
+                        const progress{{ post.id }} = document.getElementById('progress-{{ post.id }}');
+                        const progressContainer{{ post.id }} = document.getElementById('progress-container-{{ post.id }}');
+                        const currentTime{{ post.id }} = document.getElementById('current-time-{{ post.id }}');
+                        const duration{{ post.id }} = document.getElementById('duration-{{ post.id }}');
+                        const volume{{ post.id }} = document.getElementById('volume-{{ post.id }}');
+
+                        // Воспроизведение/пауза
+                        playPauseButton{{ post.id }}.addEventListener('click', () => {
+                            if (audio{{ post.id }}.paused) {
+                                audio{{ post.id }}.play();
+                                playIcon{{ post.id }}.style.display = 'none';
+                                pauseIcon{{ post.id }}.style.display = 'block';
+                            } else {
+                                audio{{ post.id }}.pause();
+                                playIcon{{ post.id }}.style.display = 'block';
+                                pauseIcon{{ post.id }}.style.display = 'none';
+                            }
+                        });
+
+                        // Обновление прогресса
+                        audio{{ post.id }}.addEventListener('timeupdate', () => {
+                            const percent = (audio{{ post.id }}.currentTime / audio{{ post.id }}.duration) * 100;
+                            progress{{ post.id }}.style.width = `${percent}%`;
+
+                            // Форматирование времени
+                            const formatTime = (time) => {
+                                const minutes = Math.floor(time / 60);
+                                const seconds = Math.floor(time % 60);
+                                return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                            };
+
+                            currentTime{{ post.id }}.textContent = formatTime(audio{{ post.id }}.currentTime);
+                            duration{{ post.id }}.textContent = formatTime(audio{{ post.id }}.duration);
+                        });
+
+                        // Перемотка
+                        progressContainer{{ post.id }}.addEventListener('click', (e) => {
+                            const width = progressContainer{{ post.id }}.clientWidth;
+                            const clickX = e.offsetX;
+                            const duration = audio{{ post.id }}.duration;
+                            audio{{ post.id }}.currentTime = (clickX / width) * duration;
+                        });
+
+                        // Громкость
+                        volume{{ post.id }}.addEventListener('input', () => {
+                            audio{{ post.id }}.volume = volume{{ post.id }}.value;
+                        });
+
+                        // Обработка окончания воспроизведения
+                        audio{{ post.id }}.addEventListener('ended', () => {
+                            playIcon{{ post.id }}.style.display = 'block';
+                            pauseIcon{{ post.id }}.style.display = 'none';
+                        });
+                    </script>
+                    {% endfor %}
+                {% else %}
+                    <p style="text-align: center; color: var(--text-color);">Публикаций пока нет:(</p>
+                {% endif %}
+                    <div style="height: 100px;"></div> <!-- Пустое пространство -->
+            </div>
+
+            <!-- Секция с закладками -->
+            <div id="bookmarks-section" style="display: none;">
+                {% if current_user.bookmarked_posts %}
+                    {% for post in current_user.bookmarked_posts %}
+                    <div class="post" id="post-{{ post.id }}">
+                        <div class="post-header">
+                            <div class="post-author">
+                                <img src="{{ url_for('static', filename=(post.author.avatar if post.author.avatar else 'uploads/avatars/default_avatar.png')) }}" alt="Аватар">
+                                <a href="{{ url_for('profile', username=post.author.username) }}">{{ post.author.username }}</a>
+                            </div>
+                            <div class="post-menu" onclick="togglePostMenu(event, {{ post.id }})">
+                                <span class="post-menu-dots">•••</span>
+                                <div class="post-menu-dropdown" id="post-menu-{{ post.id }}">
+                                    {% if current_user.id == post.author_id %}
+                                        <div class="post-menu-item" onclick="deletePost({{ post.id }})">Удалить</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="post-content">{{ post.content }}</div>
+                        {% if post.media_path %}
+                            <div class="media-container">
+                                {% set media_ext = post.media_path.split('.')[-1].lower() %}
+                                {% if media_ext in ['mp4', 'webm', 'ogg'] %}
+                                    <video controls class="media-content" preload="metadata">
+                                        <source src="{{ url_for('static', filename='posts/' ~ post.media_path) }}" type="video/{{ media_ext }}">
+                                        Ваш браузер не поддерживает видео тег.
+                                    </video>
+                                {% elif media_ext in ['mp3', 'wav', 'ogg'] %}
+                                    <div class="audio-player">
+                                        <audio id="audio-{{ post.id }}" src="{{ url_for('static', filename='posts/' ~ post.media_path) }}"></audio>
+                                        <div class="audio-controls">
+                                            <button id="play-pause-{{ post.id }}">
+                                                <img src="{{ url_for('static', filename='play.png') }}" alt="Play" class="play-icon">
+                                                <img src="{{ url_for('static', filename='pause.png') }}" alt="Pause" class="pause-icon" style="display: none;">
+                                            </button>
+                                            <input type="range" id="volume-{{ post.id }}" min="0" max="1" step="0.1" value="1">
+                                        </div>
+                                        <div class="progress-container" id="progress-container-{{ post.id }}">
+                                            <div class="progress" id="progress-{{ post.id }}"></div>
+                                        </div>
+                                        <div class="time">
+                                            <span id="current-time-{{ post.id }}">0:00</span>
+                                            <span id="duration-{{ post.id }}">0:00</span>
+                                        </div>
+                                    </div>
+                                {% elif media_ext in ['png', 'jpg', 'jpeg', 'gif'] %}
+                                    <img src="{{ url_for('static', filename='posts/' ~ post.media_path) }}" alt="Медиа вложение" class="media-content" loading="lazy">
+                                {% else %}
+                                    <div class="media-error">
+                                        Файл не поддерживается: {{ post.media_path }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="post-actions">
+                            <div onclick="Post.like({{ post.id }})">
+                                <img src="{{ url_for('static', filename='like_logo.png') }}"
+                                     id="like-icon-{{ post.id }}"
+                                     class="{% if post.is_liked_by(current_user) %}like-active{% endif %}"
+                                     alt="Лайк">
+                                <span id="like-count-{{ post.id }}">{{ post.likes.count() }}</span>
+                            </div>
+                            <div onclick="Post.toggleComments({{ post.id }})">
+                                <img src="{{ url_for('static', filename='comment_icon.png') }}" alt="Комментарии">
+                                <span id="comment-count-{{ post.id }}">{{ post.comments.count() }}</span>
+                            </div>
+                            <div onclick="Post.bookmark({{ post.id }})">
+                                <img src="{{ url_for('static', filename='bookmark_icon.png') }}"
+                                     id="bookmark-icon-{{ post.id }}"
+                                     class="{% if post.is_bookmarked_by(current_user) %}bookmark-active{% endif %}"
+                                     alt="Закладки">
+                            </div>
+                        </div>
+
+                        <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                            {% for comment in post.comments %}
+                            <div class="comment">
+                                <img src="{{ url_for('static', filename=(comment.user.avatar if comment.user.avatar else 'uploads/avatars/default_avatar.png')) }}" alt="Аватар">
+                                <div class="comment-content">
+                                    <a href="{{ url_for('profile', username=comment.user.username) }}">{{ comment.user.username }}</a>
+                                    <p>{{ comment.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <form class="comment-form" onsubmit="return addComment(event, {{ post.id }})">
+                                <input type="text" name="content" placeholder="Написать комментарий..." required>
+                                <button type="submit">Отправить</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="text-align: center; color: var(--text-color);">Нет сохраненных постов</p>
+                {% endif %}
+                <div style="height: 300px;"></div> <!-- Пустое пространство -->
+            </div>
+        </div>
+    </main>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    const Post = {
+        // 1. Переключение вкладок (Посты/Закладки)
+        toggleSection(section) {
+            document.getElementById('posts-section').style.display = section === 'posts' ? 'block' : 'none';
+            document.getElementById('bookmarks-section').style.display = section === 'bookmarks' ? 'block' : 'none';
+
+            document.querySelectorAll('.section-switcher .tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(`${section}-tab`).classList.add('active');
+        },
+
+        // 2. Лайки
+        async like(postId) {
+            try {
+                const response = await fetch(`/api/like_post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                const likeIcon = document.querySelector(`#like-icon-${postId}`);
+                const likeCount = document.querySelector(`#like-count-${postId}`);
+                likeIcon.classList.toggle('like-active', data.is_liked);
+                likeCount.textContent = data.likes_count;
+
+            } catch (error) {
+                console.error('Like error:', error);
+            }
+        },
+
+        // 3. Добавление комментариев
+        async addComment(event, postId) {
+            event.preventDefault();
+            const form = event.target;
+            const content = form.content.value.trim();
+
+            if (!content) {
+                alert('Пожалуйста, введите текст комментария');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/add_comment/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ content })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Ошибка при отправке комментария');
+                }
+
+                const commentsList = document.querySelector(`#comments-list-${postId}`);
+                const commentCount = document.querySelector(`#comment-count-${postId}`);
+
+                commentsList.insertAdjacentHTML('beforeend', `
+                    <div class="comment">
+                        <img src="${result.comment.user.avatar || '/static/uploads/avatars/default_avatar.png'}" alt="Аватар">
+                        <div class="comment-content">
+                            <a href="/profile/${result.comment.user.username}">${result.comment.user.username}</a>
+                            <p>${result.comment.content}</p>
+                        </div>
+                    </div>
+                `);
+
+                commentCount.textContent = result.comments_count;
+                form.reset();
+
+            } catch (error) {
+                console.error('Ошибка при добавлении комментария:', error);
+                alert(`Ошибка: ${error.message}`);
+            }
+        },
+
+        // 4. Закладки
+        async bookmark(postId) {
+            try {
+                const response = await fetch(`/api/bookmark_post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const bookmarkIcon = document.querySelector(`#bookmark-icon-${postId}`);
+                    bookmarkIcon.classList.toggle('bookmark-active', data.is_bookmarked);
+                }
+            } catch (error) {
+                console.error('Ошибка закладки:', error);
+            }
+        },
+
+        // 5. Управление комментариями (показать/скрыть)
+        toggleComments(postId) {
+            const commentsSection = document.querySelector(`#comments-${postId}`);
+            commentsSection.style.display = commentsSection.style.display === 'none' ? 'block' : 'none';
+        },
+
+        // 6. Меню поста (троеточие)
+        togglePostMenu(event, postId) {
+            event.stopPropagation();
+            const menu = document.getElementById(`post-menu-${postId}`);
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        },
+
+        // 7. Удаление поста
+        deletePost(postId) {
+            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
+                fetch(`/delete_post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelector(`#post-${postId}`).remove();
+                    }
+                });
+            }
+        },
+
+        // Инициализация аудиоплееров
+        initAudioPlayers() {
+            document.querySelectorAll('.audio-player').forEach(player => {
+                const audio = player.querySelector('audio');
+                if (!audio) return;
+
+                const playPauseBtn = player.querySelector('button[id^="play-pause-"]');
+                const playIcon = playPauseBtn.querySelector('.play-icon');
+                const pauseIcon = playPauseBtn.querySelector('.pause-icon');
+                const progress = player.querySelector('.progress');
+                const progressContainer = player.querySelector('.progress-container');
+                const currentTime = player.querySelector('.current-time');
+                const duration = player.querySelector('.duration');
+                const volume = player.querySelector('input[type="range"]');
+
+                playPauseBtn.addEventListener('click', () => {
+                    if (audio.paused) {
+                        audio.play();
+                        playIcon.style.display = 'none';
+                        pauseIcon.style.display = 'block';
+                    } else {
+                        audio.pause();
+                        playIcon.style.display = 'block';
+                        pauseIcon.style.display = 'none';
+                    }
+                });
+
+                audio.addEventListener('timeupdate', () => {
+                    const percent = (audio.currentTime / audio.duration) * 100;
+                    progress.style.width = `${percent}%`;
+
+                    const formatTime = (time) => {
+                        const minutes = Math.floor(time / 60);
+                        const seconds = Math.floor(time % 60);
+                        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    };
+
+                    currentTime.textContent = formatTime(audio.currentTime);
+                    duration.textContent = formatTime(audio.duration);
+                });
+
+                progressContainer.addEventListener('click', (e) => {
+                    const width = progressContainer.clientWidth;
+                    const clickX = e.offsetX;
+                    audio.currentTime = (clickX / width) * audio.duration;
+                });
+
+                if (volume) {
+                    volume.addEventListener('input', () => {
+                        audio.volume = volume.value;
+                    });
+                }
+
+                audio.addEventListener('ended', () => {
+                    playIcon.style.display = 'block';
+                    pauseIcon.style.display = 'none';
+                });
+            });
+        }
+    };
+
+    // Закрытие меню по клику вне его
+    document.addEventListener('click', (e) => {
+        document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+            if (!menu.contains(e.target)) {
+                menu.style.display = 'none';
+            }
+        });
+    });
+
+    // Инициализация аудиоплееров при загрузке страницы
+    document.addEventListener('DOMContentLoaded', () => {
+        Post.initAudioPlayers();
+    });
+</script>
+</body>
+</html>

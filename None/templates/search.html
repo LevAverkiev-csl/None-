@@ -1,0 +1,919 @@
+{% extends "base.html" %}
+
+{% block content %}
+<body class="{% if current_user.dark_mode %}dark-mode{% endif %}">
+    <!-- Навигационная панель -->
+    <div class="nav-container">
+        <nav>
+            <ul class="nav">
+                <li class="nav-item"><a href="/" class="nav-link"><img src="{{ url_for('static', filename='home_logo.png') }}" alt="Главная"></a></li>
+                <li class="nav-item"><a href="/search" class="nav-link"><img src="{{ url_for('static', filename='search-icon.png') }}" alt="Интересы"></a></li>
+                <li class="nav-item desktop-only"><a href="/notifications" class="nav-link"><img src="{{ url_for('static', filename='notification_icon.png') }}" alt="Уведомления"></a></li>
+                <li class="nav-item desktop-only"><a href="/messenger" class="nav-link"><img src="{{ url_for('static', filename='chat_logo.png') }}" alt="Мессенджер"></a></li>
+                <li class="nav-item"><a href="/settings" class="nav-link"><img src="{{ url_for('static', filename='settings_logo.png') }}" alt="Настройки"></a></li>
+                <li class="nav-item"><a href="/subscriptions" class="nav-link"><img src="{{ url_for('static', filename='subscriptions_logo.png') }}" alt="Подписки"></a></li>
+                <li class="nav-item"><a href="/create_post" class="nav-link"><img src="{{ url_for('static', filename='create_post_logo.png') }}" alt="Создать пост"></a></li>
+                <li class="nav-item"><a href="/logout" class="nav-link"><img src="{{ url_for('static', filename='logout_logo.png') }}" alt="Выйти"></a></li>
+                {% if current_user.is_authenticated %}
+                    <li class="nav-item desktop-only"><a href="/account" class="nav-link"><img src="{{ url_for('static', filename='account_logo.png') }}" alt="Мой аккаунт"></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if current_user.is_authenticated %}
+            {% include 'user_nav.html' %}
+        {% else %}
+            <div class="user-nav">
+                <a href="/login" class="nav-link">Вход</a>
+                <a href="/register" class="nav-link">Регистрация</a>
+            </div>
+        {% endif %}
+    </div>
+
+    <main>
+        <div class="search-container">
+            <h1>Поиск</h1>
+            <form action="{{ url_for('search') }}" method="GET" class="search-form">
+                <input type="text" name="query" value="{{ query }}" placeholder="Введите запрос..." required>
+                <button type="submit">Найти</button>
+            </form>
+
+            <div class="search-results">
+                {% if query %}
+                    <!-- Результаты поиска -->
+                    {% if users or posts %}
+                        {% if users %}
+                        <div class="users-section">
+                            <h2>Пользователи</h2>
+                            <div class="user-list">
+                                {% for user in users %}
+                                <div class="user-card">
+                                    <img src="{{ url_for('static', filename='uploads/avatars/' + (user.avatar if user.avatar else 'default_avatar.png')) }}" class="user-avatar" alt="Аватар">
+                                    <div class="user-info">
+                                        <a href="{{ url_for('profile', username=user.username) }}" class="user-name">{{ user.username|truncate(10, True) }}</a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if posts %}
+                        <div class="posts-section">
+                            <h2>Посты</h2>
+                            {% for post in posts %}
+                            <div class="post" id="post-{{ post.id }}">
+                                <div class="post-header">
+                                    <div class="post-author">
+                                        <img src="{{ url_for('static', filename='uploads/avatars/' + (post.author.avatar if post.author.avatar else 'default_avatar.png')) }}" class="post-avatar" alt="Аватар">
+                                        <div class="author-info">
+                                            <a href="{{ url_for('profile', username=post.author.username) }}" class="author-name">{{ post.author.username }}</a>
+                                        </div>
+                                    </div>
+                                    <div class="post-menu" onclick="togglePostMenu(event, {{ post.id }})">
+                                        <span class="post-menu-dots">•••</span>
+                                        <div class="post-menu-dropdown" id="post-menu-{{ post.id }}">
+                                            <div class="post-menu-item" onclick="translatePost({{ post.id }})">Перевести</div>
+                                            <div class="post-menu-item" onclick="reportPost({{ post.id }})">Пожаловаться</div>
+                                            {% if current_user.id == post.author_id %}
+                                            <div class="post-menu-item" onclick="deletePost({{ post.id }})">Удалить</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="post-content">{{ post.content }}</div>
+                                {% if post.media_path %}
+                                <div class="media-container">
+                                    {% set media_ext = post.media_path.split('.')[-1].lower() %}
+                                    {% if media_ext in ['mp4', 'webm', 'ogg'] %}
+                                    <video controls class="media-content">
+                                        <source src="{{ url_for('static', filename='posts/' + post.media_path) }}" type="video/{{ media_ext }}">
+                                    </video>
+                                    {% elif media_ext in ['jpg', 'jpeg', 'png', 'gif'] %}
+                                    <img src="{{ url_for('static', filename='posts/' + post.media_path) }}" class="media-content" alt="Медиа">
+                                    {% elif media_ext in ['mp3', 'wav'] %}
+                                    <div class="audio-player">
+                                        <audio id="audio-{{ post.id }}" src="{{ url_for('static', filename='posts/' + post.media_path) }}"></audio>
+                                        <div class="audio-controls">
+                                            <button id="play-pause-{{ post.id }}">
+                                                <img src="{{ url_for('static', filename='play.png') }}" alt="Play" class="play-icon">
+                                                <img src="{{ url_for('static', filename='pause.png') }}" alt="Pause" class="pause-icon" style="display: none;">
+                                            </button>
+                                            <input type="range" id="volume-{{ post.id }}" min="0" max="1" step="0.1" value="1">
+                                        </div>
+                                        <div class="progress-container" id="progress-container-{{ post.id }}">
+                                            <div class="progress" id="progress-{{ post.id }}"></div>
+                                        </div>
+                                        <div class="time">
+                                            <span id="current-time-{{ post.id }}">0:00</span>
+                                            <span id="duration-{{ post.id }}">0:00</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                <div class="post-actions">
+                                    <div onclick="toggleLike({{ post.id }})">
+                                        <img src="{{ url_for('static', filename='like_logo.png') }}" alt="Лайк" class="action-icon">
+                                        <span id="like-count-{{ post.id }}">{{ post.likes.count() }}</span>
+                                    </div>
+                                    <div onclick="toggleComments({{ post.id }})">
+                                        <img src="{{ url_for('static', filename='comment_icon.png') }}" alt="Комментарии" class="action-icon">
+                                        <span id="comment-count-{{ post.id }}">{{ post.comments.count() }}</span>
+                                    </div>
+                                    <div onclick="toggleBookmark({{ post.id }})">
+                                        <img src="{{ url_for('static', filename='bookmark_icon.png') }}" alt="Закладка" class="action-icon">
+                                    </div>
+                                </div>
+                                <div class="comments-section" id="comments-{{ post.id }}" style="display: none;">
+                                    <div class="comments-list" id="comments-list-{{ post.id }}">
+                                        {% for comment in post.comments %}
+                                        <div class="comment">
+                                            <img src="{{ url_for('static', filename='uploads/avatars/' + (comment.user.avatar if comment.user.avatar else 'default_avatar.png')) }}" alt="Аватар">
+                                            <div class="comment-content">
+                                                <a href="{{ url_for('profile', username=comment.user.username) }}">{{ comment.user.username }}</a>
+                                                <p>{{ comment.content }}</p>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <form class="comment-form" onsubmit="Post.addComment(event, {{ post.id }})">
+                                        <input type="text" name="content" placeholder="Написать комментарий..." required>
+                                        <button type="submit">Отправить</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="no-results">
+                            <p>Ничего не найдено по запросу "{{ query }}"</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <!-- История поиска -->
+                    <div class="search-history">
+                        <h2>История поиска</h2>
+                        {% if search_history %}
+                            <ul class="history-list">
+                                {% for history in search_history %}
+                                <li class="history-item">
+                                    <a href="{{ url_for('search', query=history.search_query) }}">
+                                        {{ history.search_query }}
+                                    </a>
+                                    <form method="POST"
+                                          action="{{ url_for('delete_search_history', history_id=history.id) }}"
+                                          class="delete-history-form">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="delete-history-btn">×</button>
+                                    </form>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="empty-history">Вы еще ничего не искали</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                <div style="height: 100px;"></div> <!-- Пустое пространство -->
+            </div>
+        </div>
+    </main>
+
+    <style>
+        /* Основные стили */
+        :root {
+            --bg-color: #d7ffd8;
+            --text-color: #333;
+            --container-bg: #fff;
+            --border-color: #ddd;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --nav-bg: #f8f9fa;
+            --nav-text-color: #007bff;
+            --nav-hover-bg: #e9ecef;
+            --post-bg: #fff;
+            --post-text-color: #222;
+            --comment-bg: #f0f2f5;
+            --comment-text-color: #222;
+            --history-bg: #f8f9fa;
+            --history-hover-bg: #e9ecef;
+        }
+
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --container-bg: #2d2d2d;
+            --border-color: #444;
+            --button-bg: #2196F3;
+            --button-hover-bg: #1976D2;
+            --nav-bg: #1e1e1e;
+            --nav-text-color: #ffffff;
+            --nav-hover-bg: #444;
+            --post-bg: #2d2d2d;
+            --post-text-color: #ffffff;
+            --comment-bg: #3a3a3a;
+            --comment-text-color: #ffffff;
+            --history-bg: #2d2d2d;
+            --history-hover-bg: #444;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--nav-bg);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav {
+            display: flex;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            justify-content: center;
+            padding: 10px 0;
+        }
+
+        .nav-item {
+            margin: 0 5px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--nav-text-color);
+            padding: 10px;
+        }
+
+        .nav-link img {
+            width: 30px;
+            height: 30px;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar {
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+        }
+
+        main {
+            padding: 70px 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .search-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 25px;
+            border: 1px solid var(--border-color);
+            outline: none;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        .search-form button {
+            padding: 12px 20px;
+            border-radius: 25px;
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-form button:hover {
+            background: var(--button-hover-bg);
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .users-section, .posts-section {
+            margin-bottom: 30px;
+        }
+
+        .user-list {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .user-card {
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 10px;
+            background: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+        }
+
+        .user-name {
+            font-size: 14px;
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        .user-name:hover {
+            text-decoration: underline;
+        }
+
+        .post {
+            background: var(--post-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .post-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .post-author img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .post-author a {
+            font-weight: 500;
+            color: var(--nav-text-color);
+            text-decoration: none;
+        }
+
+        .post-author a:hover {
+            text-decoration: underline;
+        }
+
+        .post-menu {
+            margin-left: auto;
+            position: relative;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .post-menu-dots {
+            font-size: 20px;
+            color: var(--text-color);
+        }
+
+        .post-menu-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 25px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            min-width: 160px;
+        }
+
+        .post-menu-dropdown.show {
+            display: block;
+        }
+
+        .post-menu-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .post-menu-item:hover {
+            background: var(--nav-hover-bg);
+        }
+
+        .post-content {
+            color: var(--post-text-color);
+            font-size: 15px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        .post-actions {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+            color: var(--text-color);
+            font-size: 14px;
+        }
+
+        .post-actions div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .post-actions img {
+            width: 22px;
+            height: 22px;
+        }
+
+        .comments-section {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .comment {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .comment img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .comment-content {
+            background: var(--comment-bg);
+            padding: 10px 14px;
+            border-radius: 12px;
+            width: 100%;
+        }
+
+        .comment-content a {
+            font-weight: 500;
+            color: var(--nav-text-color);
+            text-decoration: none;
+        }
+
+        .comment-content p {
+            color: var(--comment-text-color);
+            margin-top: 4px;
+        }
+
+        .comment-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .comment-form input {
+            flex: 1;
+            padding: 8px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            outline: none;
+            font-size: 14px;
+            background: var(--container-bg);
+            color: var(--text-color);
+        }
+
+        .comment-form button {
+            background: var(--button-bg);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .comment-form button:hover {
+            background: var(--button-hover-bg);
+        }
+
+        .media-container {
+            margin: 15px 0;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .media-content {
+            width: 100%;
+            height: auto;
+            max-width: 600px;
+            display: block;
+            margin: 0 auto;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        video.media-content {
+            max-height: 500px;
+            background: var(--bg-color);
+        }
+
+        .audio-player {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .audio-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .audio-controls button {
+            background-color: var(--button-bg);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+        }
+
+        .audio-controls button:hover {
+            background-color: var(--button-hover-bg);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 5px;
+            background-color: var(--border-color);
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: var(--button-bg);
+            border-radius: 5px;
+            width: 0%;
+        }
+
+        .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-color);
+            margin-top: 5px;
+        }
+
+        /* Стили для истории поиска */
+        .search-history {
+            background: var(--history-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-history h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .history-item:hover {
+            background-color: var(--history-hover-bg);
+        }
+
+        .history-item a {
+            color: var(--nav-text-color);
+            text-decoration: none;
+            flex-grow: 1;
+            font-size: 16px;
+        }
+
+        .history-item a:hover {
+            text-decoration: underline;
+        }
+
+        .delete-history-form {
+            margin-left: 10px;
+        }
+
+        .delete-history-btn {
+            background: none;
+            border: none;
+            color: #ff4444;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 5px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .delete-history-btn:hover {
+            background-color: rgba(255, 0, 0, 0.1);
+            color: #cc0000;
+        }
+
+        .empty-history {
+            color: var(--text-color);
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        /* Стили для сообщения "Ничего не найдено" */
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                flex-wrap: nowrap;
+                justify-content: space-between;
+                padding: 10px 10px;
+            }
+
+            .nav-item {
+                margin: 0 5px;
+            }
+
+            .nav-link img {
+                width: 28px;
+                height: 28px;
+            }
+
+            .desktop-only {
+                display: none;
+            }
+
+            .search-container {
+                padding: 10px;
+            }
+
+            .search-form {
+                flex-direction: column;
+            }
+
+            .search-form input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .search-form button {
+                width: 100%;
+            }
+
+            .user-list {
+                gap: 10px;
+                padding: 10px 5px;
+            }
+
+            .user-card {
+                padding: 8px;
+            }
+
+            .user-avatar {
+                width: 50px;
+                height: 50px;
+            }
+
+            .user-name {
+                font-size: 12px;
+            }
+
+            .history-item {
+                padding: 8px 10px;
+            }
+
+            .history-item a {
+                font-size: 14px;
+            }
+
+            .delete-history-btn {
+                font-size: 18px;
+            }
+        }
+    </style>
+
+    <script>
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+        function togglePostMenu(event, postId) {
+            event.stopPropagation();
+            const menu = document.getElementById(`post-menu-${postId}`);
+            menu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+                if (!menu.contains(e.target)) menu.classList.remove('show');
+            });
+        });
+
+        async function toggleLike(postId) {
+            try {
+                const response = await fetch(`/like/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const counter = document.getElementById(`like-count-${postId}`);
+                    counter.textContent = data.new_count;
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        async function toggleBookmark(postId) {
+            try {
+                const response = await fetch(`/bookmark/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const icon = document.querySelector(`#post-${postId} .action-icon[alt="Закладка"]`);
+                    icon.src = data.bookmarked ? '/static/bookmark_filled.png' : '/static/bookmark_icon.png';
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function translatePost(postId) {
+            console.log(`Перевод поста ${postId}`);
+        }
+
+        function reportPost(postId) {
+            console.log(`Жалоба на пост ${postId}`);
+        }
+
+        function deletePost(postId) {
+            if (confirm('Вы уверены, что хотите удалить этот пост?')) {
+                fetch(`/delete_post/${postId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById(`post-${postId}`).remove();
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
+            }
+        }
+
+        // Удаление из истории поиска
+        document.querySelectorAll('.delete-history-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.closest('.history-item').remove();
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
+            });
+        });
+
+        // Инициализация аудиоплеера для каждого поста
+        {% for post in posts %}
+        const audio{{ post.id }} = document.getElementById('audio-{{ post.id }}');
+        const playPauseButton{{ post.id }} = document.getElementById('play-pause-{{ post.id }}');
+        const progress{{ post.id }} = document.getElementById('progress-{{ post.id }}');
+        const progressContainer{{ post.id }} = document.getElementById('progress-container-{{ post.id }}');
+        const currentTime{{ post.id }} = document.getElementById('current-time-{{ post.id }}');
+        const duration{{ post.id }} = document.getElementById('duration-{{ post.id }}');
+        const volume{{ post.id }} = document.getElementById('volume-{{ post.id }}');
+
+        // Воспроизведение/пауза
+        playPauseButton{{ post.id }}.addEventListener('click', () => {
+            const playIcon = playPauseButton{{ post.id }}.querySelector('.play-icon');
+            const pauseIcon = playPauseButton{{ post.id }}.querySelector('.pause-icon');
+
+            if (audio{{ post.id }}.paused) {
+                audio{{ post.id }}.play();
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'inline';
+            } else {
+                audio{{ post.id }}.pause();
+                playIcon.style.display = 'inline';
+                pauseIcon.style.display = 'none';
+            }
+        });
+
+        // Обновление прогресса
+        audio{{ post.id }}.addEventListener('timeupdate', () => {
+            const percent = (audio{{ post.id }}.currentTime / audio{{ post.id }}.duration) * 100;
+            progress{{ post.id }}.style.width = `${percent}%`;
+
+            // Форматирование времени
+            const formatTime = (time) => {
+                const minutes = Math.floor(time / 60);
+                const seconds = Math.floor(time % 60);
+                return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            };
+
+            currentTime{{ post.id }}.textContent = formatTime(audio{{ post.id }}.currentTime);
+            duration{{ post.id }}.textContent = formatTime(audio{{ post.id }}.duration);
+        });
+
+        // Перемотка
+        progressContainer{{ post.id }}.addEventListener('click', (e) => {
+            const width = progressContainer{{ post.id }}.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audio{{ post.id }}.duration;
+            audio{{ post.id }}.currentTime = (clickX / width) * duration;
+        });
+
+        // Громкость
+        volume{{ post.id }}.addEventListener('input', () => {
+            audio{{ post.id }}.volume = volume{{ post.id }}.value;
+        });
+        {% endfor %}
+    </script>
+</body>
+{% endblock %}
